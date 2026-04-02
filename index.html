@@ -1,1 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThinkATS — Budget Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;color:#111827;background:#f9fafb;padding:16px}
+.tabs{display:flex;gap:0;border-bottom:1px solid #e5e7eb;margin-bottom:16px;background:#fff;border-radius:8px 8px 0 0;padding:0 8px}
+.tab{padding:10px 16px;font-size:12px;cursor:pointer;border:none;background:none;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:500;font-family:Arial,sans-serif}
+.tab.on{color:#1d4ed8;border-bottom-color:#2563eb;font-weight:600}
+.tab:hover{color:#111827}
+.page{display:none}.page.on{display:block}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#f0f4ff;border-radius:8px;padding:12px 14px}
+.kpi .lbl{font-size:11px;color:#6b7280;margin-bottom:4px}
+.kpi .val{font-size:19px;font-weight:600;color:#111827}
+.kpi .sub{font-size:10px;color:#9ca3af;margin-top:2px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.sec-hdr{font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:11px;font-weight:600;color:#6b7280;text-align:left;padding:6px 8px;border-bottom:1px solid #e5e7eb;background:#f9fafb}
+th.r,td.r{text-align:right}
+td{padding:6px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle;color:#374151}
+tr:last-child td{border-bottom:none}
+.grp-row td{background:#f3f4f6;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;padding:5px 8px}
+.tot-row td{font-weight:600;background:#eff6ff;border-top:1px solid #dbeafe;color:#1e3a8a}
+input[type=number],input[type=text]{font-size:12px;padding:4px 7px;border:1px solid #d1d5db;border-radius:5px;background:#fffbeb;color:#1d4ed8;font-family:Arial,sans-serif}
+input[type=number]{width:110px;text-align:right}
+input[type=text]{width:100%}
+input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.1)}
+select{font-size:12px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#111827;font-family:Arial,sans-serif}
+select:focus{outline:none;border-color:#2563eb}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600}
+.b-fix{background:#eff6ff;color:#1e40af}
+.b-var{background:#fff7ed;color:#92400e}
+.b-ok{background:#dcfce7;color:#166534}
+.b-over{background:#fef2f2;color:#991b1b}
+.sum-bar{background:#111827;border-radius:8px;padding:12px 18px;display:flex;gap:28px;margin-top:12px;flex-wrap:wrap}
+.sum-bar .sl{font-size:10px;color:#9ca3af;margin-bottom:3px}
+.sum-bar .sv{font-size:15px;font-weight:600;color:#fff}
+.sc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.sc-card{border:1px solid #e5e7eb;border-radius:10px;padding:16px;background:#fff}
+.sc-card.hl{border:2px solid #2563eb}
+.hdr-bar{background:#111827;color:#fff;border-radius:10px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.charts-grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px;margin-bottom:12px}
+@media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}.charts-grid{grid-template-columns:1fr}.sc-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
 
+<div class="hdr-bar">
+  <div>
+    <div style="font-weight:700;font-size:15px">ThinkATS</div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:1px">Financial operating system &middot; FY Apr 2025 &ndash; Mar 2026</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="font-size:11px;color:#9ca3af">Scenario:</span>
+    <select id="sc-sel" onchange="onScenario()" style="background:#1f2937;color:#fff;border-color:#374151">
+      <option value="Base">Base</option>
+      <option value="Conservative">Conservative</option>
+      <option value="Stretch">Stretch</option>
+    </select>
+  </div>
+</div>
+
+<div style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:0">
+<div class="tabs">
+  <button class="tab on" onclick="showTab('dash',this)">Dashboard</button>
+  <button class="tab" onclick="showTab('budget',this)">Budget ledger</button>
+  <button class="tab" onclick="showTab('actuals',this)">Actuals</button>
+  <button class="tab" onclick="showTab('mpr',this)">MPR</button>
+  <button class="tab" onclick="showTab('qpr',this)">QPR</button>
+  <button class="tab" onclick="showTab('scenarios',this)">Scenarios</button>
+</div>
+
+<div style="padding:16px">
+
+<div id="pg-dash" class="page on">
+  <div class="kpis" id="d-kpis"></div>
+  <div class="charts-grid">
+    <div class="card" style="padding:12px 14px">
+      <div class="sec-hdr">Revenue vs costs (&#8358;k / month)</div>
+      <div style="display:flex;gap:14px;font-size:11px;color:#6b7280;margin-bottom:8px">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#2563eb;margin-right:4px;vertical-align:middle"></span>Revenue</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#d1d5db;margin-right:4px;vertical-align:middle"></span>Budget costs</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:4px;vertical-align:middle"></span>Actual costs</span>
+      </div>
+      <div style="position:relative;width:100%;height:220px"><canvas id="ch1"></canvas></div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div class="sec-hdr">Gross margin % &mdash; monthly</div>
+      <div style="position:relative;width:100%;height:248px"><canvas id="ch2"></canvas></div>
+    </div>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div class="sec-hdr">Tenant ramp &mdash; all scenarios</div>
+    <div style="display:flex;gap:14px;font-size:11px;color:#6b7280;margin-bottom:8px">
+      <span><span style="display:inline-block;width:16px;height:2px;background:#2563eb;margin-right:4px;vertical-align:middle"></span>Base</span>
+      <span><span style="display:inline-block;width:16px;height:2px;background:#888780;margin-right:4px;vertical-align:middle"></span>Conservative</span>
+      <span><span style="display:inline-block;width:16px;height:2px;background:#16a34a;margin-right:4px;vertical-align:middle"></span>Stretch</span>
+    </div>
+    <div style="position:relative;width:100%;height:160px"><canvas id="ch3"></canvas></div>
+  </div>
+</div>
+
+<div id="pg-budget" class="page">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <span style="font-size:12px;color:#6b7280">Month:</span>
+    <select id="bud-mo" onchange="renderBudget()"></select>
+    <span style="font-size:11px;color:#9ca3af">Yellow cells = editable &middot; Calculated rows auto-update</span>
+  </div>
+  <div id="bud-body"></div>
+  <div class="sum-bar" id="bud-sum"></div>
+</div>
+
+<div id="pg-actuals" class="page">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:12px;color:#6b7280">Month:</span>
+    <select id="act-mo" onchange="renderActuals()"></select>
+  </div>
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span style="font-size:12px;font-weight:600;color:#1e40af">Actual MRR this month (&#8358;)</span>
+    <input type="number" id="act-rev" placeholder="0" oninput="updateActualRevenue()" style="width:140px;border-color:#93c5fd;color:#1d4ed8">
+  </div>
+  <div id="act-body"></div>
+  <div class="sum-bar" id="act-sum" style="display:none"></div>
+</div>
+
+<div id="pg-mpr" class="page">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:12px;color:#6b7280">Month:</span>
+    <select id="mpr-mo" onchange="renderMpr()"></select>
+    <span id="mpr-title" style="font-size:13px;font-weight:600;color:#1d4ed8;margin-left:6px"></span>
+  </div>
+  <div id="mpr-body"></div>
+</div>
+
+<div id="pg-qpr" class="page">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:12px;color:#6b7280">Quarter:</span>
+    <select id="qpr-qtr" onchange="renderQpr()">
+      <option value="0">Q1 &mdash; Apr&ndash;Jun 2025</option>
+      <option value="1">Q2 &mdash; Jul&ndash;Sep 2025</option>
+      <option value="2">Q3 &mdash; Oct&ndash;Dec 2025</option>
+      <option value="3">Q4 &mdash; Jan&ndash;Mar 2026</option>
+    </select>
+  </div>
+  <div class="kpis" id="qpr-kpis"></div>
+  <div id="qpr-body"></div>
+</div>
+
+<div id="pg-scenarios" class="page">
+  <div class="sc-grid" id="sc-cards"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table id="sc-table"></table>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+const USD=1600;
+const MONTHS=["Apr 25","May 25","Jun 25","Jul 25","Aug 25","Sep 25","Oct 25","Nov 25","Dec 25","Jan 26","Feb 26","Mar 26"];
+const MONTHS_F=["Apr 2025","May 2025","Jun 2025","Jul 2025","Aug 2025","Sep 2025","Oct 2025","Nov 2025","Dec 2025","Jan 2026","Feb 2026","Mar 2026"];
+const RAMP={Base:[2,4,6,8,11,14,18,22,28,35,45,60],Conservative:[0,1,2,3,4,5,6,8,10,12,15,18],Stretch:[5,8,12,18,25,33,45,58,72,82,92,100]};
+const ARPU={Base:50000,Conservative:37000,Stretch:65000};
+const ENG=[0,0,0,0,0,350000,350000,350000,350000,350000,350000,350000];
+const CS=[0,0,0,0,0,0,0,0,200000,200000,200000,200000];
+const MKTG=[0,0,30000,30000,50000,50000,80000,80000,100000,100000,120000,120000];
+const EVENTS=[0,0,50000,0,0,50000,0,0,100000,0,0,100000];
+const REFERRAL=[0,0,0,10000,15000,20000,25000,35000,50000,60000,70000,75000];
+const FREELANCE=[100000,100000,100000,50000,50000,0,0,0,0,0,0,0];
+
+const GROUPS=[
+  {g:"Infrastructure",col:"#2563eb",items:[
+    {id:"supabase",n:"Supabase Pro",t:"fixed",b:25*USD,c:25*USD,s:25*USD},
+    {id:"resend",n:"Resend Pro (email + 1k domains)",t:"fixed",b:90*USD,c:90*USD,s:90*USD},
+    {id:"fargate",n:"AWS ECS Fargate",t:"fixed",b:30*USD,c:20*USD,s:45*USD},
+    {id:"alb",n:"AWS ALB (load balancer)",t:"fixed",b:18*USD,c:18*USD,s:18*USD},
+    {id:"s3cdn",n:"AWS S3 + CloudFront",t:"fixed",b:8*USD,c:5*USD,s:15*USD},
+    {id:"cloudwatch",n:"AWS CloudWatch",t:"fixed",b:3*USD,c:2*USD,s:5*USD},
+    {id:"inngest",n:"Inngest (job queues)",t:"fixed",b:0,c:0,s:20*USD},
+    {id:"upstash",n:"Upstash Redis",t:"variable",b:0,c:0,s:5*USD},
+    {id:"sentry",n:"Sentry (error monitoring)",t:"fixed",b:0,c:0,s:0},
+    {id:"domain",n:"Domain / DNS",t:"fixed",b:1*USD,c:1*USD,s:1*USD},
+    {id:"cloudmisc",n:"Cloud misc / contingency",t:"fixed",b:10*USD,c:5*USD,s:10*USD},
+    {id:"claude_api",n:"Claude API (CV parsing)",t:"variable",b:null,c:null,s:null},
+    {id:"paystack",n:"Paystack transaction fees",t:"variable",b:null,c:null,s:null},
+  ]},
+  {g:"People & HR",col:"#7c3aed",items:[
+    {id:"ceo",n:"CEO salary (Axis)",t:"fixed",b:500000,c:400000,s:700000},
+    {id:"cofounder",n:"Co-founder stipend (Dapo)",t:"fixed",b:300000,c:250000,s:450000},
+    {id:"eng1",n:"Engineer #1 (from month 6)",t:"variable",b:null,c:null,s:null},
+    {id:"cs1",n:"Customer success (from month 9)",t:"variable",b:null,c:null,s:null},
+    {id:"paye",n:"PAYE / pension (10.5%)",t:"variable",b:null,c:null,s:null},
+    {id:"legal",n:"Legal retainer",t:"fixed",b:50000,c:30000,s:80000},
+    {id:"accountant",n:"Accountant / bookkeeper",t:"fixed",b:30000,c:20000,s:50000},
+    {id:"freelance",n:"Contract devs / freelancers",t:"variable",b:null,c:null,s:null},
+  ]},
+  {g:"Office & Equipment",col:"#059669",items:[
+    {id:"laptops",n:"Laptops (amortised 3yr)",t:"fixed",b:15000,c:10000,s:25000},
+    {id:"phones",n:"Phones / accessories",t:"fixed",b:5000,c:3000,s:8000},
+    {id:"software",n:"Software subs (Figma, Notion etc.)",t:"fixed",b:20000,c:15000,s:35000},
+    {id:"cowork",n:"Co-working / office rent",t:"fixed",b:80000,c:50000,s:150000},
+    {id:"internet",n:"Utilities / internet",t:"fixed",b:25000,c:20000,s:30000},
+  ]},
+  {g:"Sales & Marketing",col:"#d97706",items:[
+    {id:"linkedin",n:"LinkedIn ads",t:"variable",b:null,c:null,s:null},
+    {id:"google",n:"Google / Meta ads",t:"variable",b:null,c:null,s:null},
+    {id:"content",n:"Content / SEO tools",t:"fixed",b:15000,c:10000,s:25000},
+    {id:"events",n:"Events / conferences",t:"variable",b:null,c:null,s:null},
+    {id:"pr",n:"PR / comms",t:"variable",b:0,c:0,s:0},
+    {id:"referral",n:"Referral commissions",t:"variable",b:null,c:null,s:null},
+  ]},
+  {g:"G&A",col:"#6b7280",items:[
+    {id:"banking",n:"Banking charges",t:"fixed",b:5000,c:3000,s:8000},
+    {id:"fx",n:"FX / transfer fees",t:"variable",b:0,c:0,s:0},
+    {id:"cac_f",n:"CAC / compliance filings",t:"fixed",b:5000,c:3000,s:8000},
+    {id:"travel",n:"Travel & transport",t:"variable",b:20000,c:10000,s:40000},
+    {id:"training",n:"Training / certifications",t:"variable",b:0,c:0,s:0},
+    {id:"misc_ga",n:"Misc G&A",t:"fixed",b:10000,c:7000,s:20000},
+  ]},
+];
+
+function claudeN(t){return Math.round((t*100*1500/1e6*0.80+t*100*400/1e6*4.0)*USD);}
+function paystackN(mrr,t){return Math.round(mrr*0.015+t*100);}
+function getVal(item,mi,sc){
+  const t=RAMP[sc][mi],mrr=t*ARPU[sc];
+  if(item.id==="claude_api")return claudeN(t);
+  if(item.id==="paystack")return paystackN(mrr,t);
+  if(item.id==="eng1")return ENG[mi];
+  if(item.id==="cs1")return CS[mi];
+  if(item.id==="paye"){
+    const payroll=(sc==="Base"?500000:sc==="Conservative"?400000:700000)+(sc==="Base"?300000:sc==="Conservative"?250000:450000)+ENG[mi]+CS[mi];
+    return Math.round(payroll*0.105);
+  }
+  if(item.id==="linkedin")return MKTG[mi];
+  if(item.id==="google")return Math.round(MKTG[mi]*0.5);
+  if(item.id==="events")return EVENTS[mi];
+  if(item.id==="referral")return REFERRAL[mi];
+  if(item.id==="freelance")return FREELANCE[mi];
+  const k=sc==="Base"?"b":sc==="Conservative"?"c":"s";
+  return item[k]??0;
+}
+function groupTotal(g,mi,sc,ovr){return g.items.reduce((a,item)=>a+(ovr?.[mi]?.[item.id]??getVal(item,mi,sc)),0);}
+function allCosts(mi,sc,ovr){return GROUPS.reduce((a,g)=>a+groupTotal(g,mi,sc,ovr),0);}
+
+let SC="Base",budOvr={},actuals={},actRevs={},mprData={},qprData={};
+let charts={};
+
+function fmt(n){return "₦"+Math.round(n).toLocaleString();}
+function fmtM(n){return "₦"+(Math.abs(n)/1e6).toFixed(2)+"M";}
+
+function showTab(id,btn){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("on"));
+  document.getElementById("pg-"+id).classList.add("on");
+  btn.classList.add("on");
+  if(id==="dash")renderDash();
+  if(id==="budget")renderBudget();
+  if(id==="actuals")renderActuals();
+  if(id==="mpr")renderMpr();
+  if(id==="qpr")renderQpr();
+  if(id==="scenarios")renderScenarios();
+}
+
+function onScenario(){SC=document.getElementById("sc-sel").value;renderDash();}
+
+function renderDash(){
+  const annRev=RAMP[SC].reduce((a,t,i)=>a+t*ARPU[SC],0);
+  const annCosts=MONTHS.reduce((_,mo,mi)=>_+allCosts(mi,SC,budOvr),0);
+  const annGP=annRev-annCosts;
+  const be=Math.ceil(allCosts(0,SC,budOvr)/(ARPU[SC]*0.9));
+  document.getElementById("d-kpis").innerHTML=`
+    <div class="kpi"><div class="lbl">Annual budget (${SC})</div><div class="val">${fmtM(annCosts)}</div><div class="sub">all operating costs</div></div>
+    <div class="kpi"><div class="lbl">Annual revenue</div><div class="val">${fmtM(annRev)}</div><div class="sub">${RAMP[SC][11]} tenants by Mar 26</div></div>
+    <div class="kpi"><div class="lbl">Annual gross profit</div><div class="val" style="color:${annGP>=0?"#166534":"#991b1b"}">${fmtM(annGP)}</div><div class="sub">${Math.round(annGP/annRev*100)}% margin</div></div>
+    <div class="kpi"><div class="lbl">Break-even tenants</div><div class="val">${be}</div><div class="sub">to cover monthly costs</div></div>
+  `;
+  const revD=RAMP[SC].map((t,i)=>Math.round(t*ARPU[SC]/1000));
+  const costsD=MONTHS.map((_,i)=>Math.round(allCosts(i,SC,budOvr)/1000));
+  const actD=MONTHS.map((_,i)=>{const v=Object.values(actuals[i]||{}).reduce((a,b)=>a+b,0);return v>0?Math.round(v/1000):null;});
+  const marginD=RAMP[SC].map((t,i)=>{const r=t*ARPU[SC],c=allCosts(i,SC,budOvr);return r>0?Math.round((r-c)/r*100):0;});
+  if(charts.c1)charts.c1.destroy();
+  charts.c1=new Chart(document.getElementById("ch1"),{type:"bar",data:{labels:MONTHS,datasets:[
+    {label:"Revenue",data:revD,backgroundColor:"rgba(37,99,235,0.75)",borderRadius:3},
+    {label:"Budget costs",data:costsD,backgroundColor:"rgba(209,213,219,0.8)",borderColor:"rgba(156,163,175,0.5)",borderWidth:0.5,borderRadius:3},
+    {label:"Actual costs",data:actD,backgroundColor:"rgba(34,197,94,0.75)",borderRadius:3},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:45},grid:{display:false}},
+      y:{ticks:{callback:v=>"₦"+v+"k",font:{size:10}},grid:{color:"rgba(0,0,0,0.05)"}}}}});
+  if(charts.c2)charts.c2.destroy();
+  charts.c2=new Chart(document.getElementById("ch2"),{type:"line",data:{labels:MONTHS,datasets:[
+    {label:"Margin %",data:marginD,borderColor:"#2563eb",backgroundColor:"rgba(37,99,235,0.07)",fill:true,borderWidth:2,pointRadius:3,tension:0.4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:45},grid:{display:false}},
+      y:{ticks:{callback:v=>v+"%",font:{size:10}},grid:{color:"rgba(0,0,0,0.05)"}}}}});
+  if(charts.c3)charts.c3.destroy();
+  charts.c3=new Chart(document.getElementById("ch3"),{type:"line",data:{labels:MONTHS,datasets:[
+    {label:"Base",data:RAMP.Base,borderColor:"#2563eb",borderWidth:2,pointRadius:2,tension:0.3,fill:false},
+    {label:"Conservative",data:RAMP.Conservative,borderColor:"#9ca3af",borderWidth:1.5,borderDash:[4,3],pointRadius:2,tension:0.3,fill:false},
+    {label:"Stretch",data:RAMP.Stretch,borderColor:"#16a34a",borderWidth:1.5,borderDash:[2,2],pointRadius:2,tension:0.3,fill:false},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:45},grid:{display:false}},
+      y:{ticks:{callback:v=>v+" tenants",font:{size:10}},grid:{color:"rgba(0,0,0,0.05)"}}}}});
+}
+
+function populateMo(id){
+  document.getElementById(id).innerHTML=MONTHS_F.map((m,i)=>`<option value="${i}">${m}</option>`).join("");
+}
+
+function renderBudget(){
+  const mi=parseInt(document.getElementById("bud-mo").value)||0;
+  let html="";
+  GROUPS.forEach(grp=>{
+    const gt=groupTotal(grp,mi,SC,budOvr);
+    html+=`<div style="margin-bottom:12px">
+      <div style="background:${grp.col};color:#fff;padding:7px 14px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;font-size:12px;font-weight:600">
+        <span>${grp.g}</span><span>${fmt(gt)}</span>
+      </div>
+      <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+      <table><thead><tr style="background:#f9fafb">
+        <th style="width:55%">Item</th><th style="width:15%;text-align:center">Type</th><th class="r" style="width:30%">&#8358; Forecast</th>
+      </tr></thead><tbody>`;
+    grp.items.forEach(item=>{
+      const v=budOvr[mi]?.[item.id]??getVal(item,mi,SC);
+      html+=`<tr>
+        <td>${item.n}</td>
+        <td style="text-align:center"><span class="badge ${item.t==="fixed"?"b-fix":"b-var"}">${item.t}</span></td>
+        <td class="r"><input type="number" value="${v}" data-mi="${mi}" data-id="${item.id}" oninput="onBudInput(this)"></td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div></div>`;
+  });
+  document.getElementById("bud-body").innerHTML=html;
+  updateBudSum(mi);
+}
+
+function onBudInput(el){
+  const mi=parseInt(el.dataset.mi),id=el.dataset.id;
+  if(!budOvr[mi])budOvr[mi]={};
+  budOvr[mi][id]=parseInt(el.value)||0;
+  updateBudSum(mi);
+}
+
+function updateBudSum(mi){
+  const t=RAMP[SC][mi],mrr=t*ARPU[SC],costs=allCosts(mi,SC,budOvr),gp=mrr-costs;
+  document.getElementById("bud-sum").innerHTML=`
+    <div><div class="sl">Forecast MRR</div><div class="sv">${fmt(mrr)}</div></div>
+    <div><div class="sl">Total costs</div><div class="sv">${fmt(costs)}</div></div>
+    <div><div class="sl">Gross profit</div><div class="sv" style="color:${gp>=0?"#4ade80":"#f87171"}">${fmt(gp)}</div></div>
+    <div><div class="sl">Margin</div><div class="sv">${mrr>0?Math.round(gp/mrr*100):0}%</div></div>
+    <div><div class="sl">Tenants</div><div class="sv">${t}</div></div>
+  `;
+}
+
+function renderActuals(){
+  const mi=parseInt(document.getElementById("act-mo").value)||0;
+  document.getElementById("act-rev").value=actRevs[mi]||"";
+  let html=`<table><thead><tr>
+    <th style="width:38%">Item</th><th class="r" style="width:18%">Budget (&#8358;)</th>
+    <th class="r" style="width:20%">Actual (&#8358;)</th><th class="r" style="width:14%">Variance</th><th style="width:10%;text-align:center">Status</th>
+  </tr></thead><tbody>`;
+  GROUPS.forEach(grp=>{
+    html+=`<tr class="grp-row"><td colspan="5">${grp.g}</td></tr>`;
+    grp.items.forEach(item=>{
+      const bud=budOvr[mi]?.[item.id]??getVal(item,mi,SC);
+      const act=actuals[mi]?.[item.id]||0;
+      const vr=bud-act,over=bud>0?Math.round((act-bud)/bud*100):0;
+      const badge=act===0?`<span style="color:#9ca3af;font-size:11px">&mdash;</span>`:
+        act<=bud?`<span class="badge b-ok">on budget</span>`:`<span class="badge b-over">+${over}%</span>`;
+      html+=`<tr>
+        <td>${item.n}</td>
+        <td class="r" style="color:#6b7280">${fmt(bud)}</td>
+        <td class="r"><input type="number" value="${act||""}" placeholder="0" data-mi="${mi}" data-id="${item.id}" oninput="onActInput(this)"></td>
+        <td class="r" style="font-weight:600;color:${act===0?"#9ca3af":vr>=0?"#166534":"#991b1b"}">${act===0?"&mdash;":(vr>=0?"+":"")+fmt(vr)}</td>
+        <td style="text-align:center">${badge}</td>
+      </tr>`;
+    });
+  });
+  html+=`</tbody></table>`;
+  document.getElementById("act-body").innerHTML=html;
+  updateActSum(mi);
+}
+
+function onActInput(el){
+  const mi=parseInt(el.dataset.mi),id=el.dataset.id;
+  if(!actuals[mi])actuals[mi]={};
+  actuals[mi][id]=parseInt(el.value)||0;
+  updateActSum(mi);
+}
+
+function updateActualRevenue(){
+  const mi=parseInt(document.getElementById("act-mo").value)||0;
+  actRevs[mi]=parseInt(document.getElementById("act-rev").value)||0;
+  updateActSum(mi);
+}
+
+function updateActSum(mi){
+  const totAct=Object.values(actuals[mi]||{}).reduce((a,b)=>a+b,0);
+  const totBud=allCosts(mi,SC,budOvr),actRev=actRevs[mi]||0;
+  const sb=document.getElementById("act-sum");
+  if(totAct>0){
+    const gp=actRev>0?actRev-totAct:null;
+    sb.style.display="flex";
+    sb.innerHTML=`
+      <div><div class="sl">Actual MRR</div><div class="sv">${actRev>0?fmt(actRev):"&mdash;"}</div></div>
+      <div><div class="sl">Actual costs</div><div class="sv">${fmt(totAct)}</div></div>
+      <div><div class="sl">vs budget</div><div class="sv" style="color:${(totBud-totAct)>=0?"#4ade80":"#f87171"}">${(totBud-totAct)>=0?"+":""} ${fmt(totBud-totAct)}</div></div>
+      ${gp!==null?`<div><div class="sl">Gross profit</div><div class="sv" style="color:${gp>=0?"#4ade80":"#f87171"}">${fmt(gp)}</div></div>`:""}
+    `;
+  } else sb.style.display="none";
+}
+
+const MPR_S=[
+  {label:"Revenue & growth",fields:[
+    {k:"tenants",l:"Active tenants"},
+    {k:"new_t",l:"New tenants added"},
+    {k:"churned",l:"Churned tenants"},
+    {k:"mrr",l:"Actual MRR (&#8358;)"},
+    {k:"trial_s",l:"Trial starts"},
+    {k:"trial_c",l:"Trial &rarr; paid conversions"},
+    {k:"conv_r",l:"Conversion rate %"},
+  ]},
+  {label:"Product & platform",fields:[
+    {k:"jobs",l:"Jobs posted (platform)"},
+    {k:"cv_p",l:"CV parses completed"},
+    {k:"uptime",l:"Platform uptime %"},
+    {k:"nps",l:"NPS score"},
+    {k:"tickets_o",l:"Support tickets opened"},
+    {k:"tickets_r",l:"Tickets resolved"},
+  ]},
+  {label:"Narrative & initiatives",fields:[
+    {k:"win1",l:"Top win this month",txt:true},
+    {k:"win2",l:"Win #2",txt:true},
+    {k:"risk",l:"Key risk / blocker",txt:true},
+    {k:"next",l:"Top priority next month",txt:true},
+    {k:"notes",l:"CEO notes",txt:true},
+  ]},
+];
+
+function renderMpr(){
+  const mi=parseInt(document.getElementById("mpr-mo").value)||0;
+  document.getElementById("mpr-title").textContent="Monthly Performance Review — "+MONTHS_F[mi];
+  let html="";
+  MPR_S.forEach(sec=>{
+    html+=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">
+      <div style="background:#1e3a5f;color:#fff;padding:8px 14px;font-size:12px;font-weight:600">${sec.label}</div>
+      <table>`;
+    sec.fields.forEach((f,fi)=>{
+      const v=mprData[mi]?.[f.k]||"";
+      html+=`<tr style="background:${fi%2===0?"#fff":"#f9fafb"}">
+        <td style="width:40%;font-weight:500">${f.l}</td>
+        <td>${f.txt
+          ?`<input type="text" value="${v.replace(/"/g,"&quot;")}" data-mi="${mi}" data-k="${f.k}" oninput="onMpr(this)">`
+          :`<input type="number" value="${v||""}" placeholder="0" data-mi="${mi}" data-k="${f.k}" oninput="onMpr(this)" style="float:right">`
+        }</td>
+      </tr>`;
+    });
+    html+=`</table></div>`;
+  });
+  document.getElementById("mpr-body").innerHTML=html;
+}
+
+function onMpr(el){
+  const mi=parseInt(el.dataset.mi),k=el.dataset.k;
+  if(!mprData[mi])mprData[mi]={};
+  mprData[mi][k]=el.value;
+}
+
+const OKRS=[
+  {obj:"Product-market fit",krs:["10 paying tenants","NPS ≥ 40","Onboarding < 10 min"]},
+  {obj:"Infrastructure",krs:["99.5% uptime","Zero critical incidents","Parse accuracy ≥ 90%"]},
+  {obj:"GTM traction",krs:["50 MVS leads contacted","5 demos completed","1 case study live"]},
+  {obj:"Financial health",krs:["MRR ≥ ₦200k","Gross margin ≥ 75%","Costs ≤ 110% budget"]},
+];
+
+function renderQpr(){
+  const qi=parseInt(document.getElementById("qpr-qtr").value)||0;
+  const qMos=[[0,1,2],[3,4,5],[6,7,8],[9,10,11]][qi];
+  const qRev=qMos.reduce((a,mi)=>a+RAMP[SC][mi]*ARPU[SC],0);
+  const qCosts=qMos.reduce((a,mi)=>a+allCosts(mi,SC,budOvr),0);
+  const qGP=qRev-qCosts;
+  document.getElementById("qpr-kpis").innerHTML=`
+    <div class="kpi"><div class="lbl">Q revenue</div><div class="val">${fmtM(qRev)}</div></div>
+    <div class="kpi"><div class="lbl">Q costs</div><div class="val">${fmtM(qCosts)}</div></div>
+    <div class="kpi"><div class="lbl">Q gross profit</div><div class="val" style="color:${qGP>=0?"#166534":"#991b1b"}">${fmtM(qGP)}</div></div>
+    <div class="kpi"><div class="lbl">Q margin</div><div class="val">${Math.round(qGP/qRev*100)}%</div></div>
+  `;
+  let html=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
+    <div style="background:#1e3a5f;color:#fff;padding:8px 14px;font-size:12px;font-weight:600">OKR scorecard</div>
+    <table><thead><tr>
+      <th style="width:20%">Objective</th><th style="width:32%">Key result</th>
+      <th class="r" style="width:12%">Target</th><th class="r" style="width:12%">Actual</th>
+      <th class="r" style="width:10%">Score</th><th style="width:14%;text-align:center">RAG</th>
+    </tr></thead><tbody>`;
+  OKRS.forEach((okr,oi)=>{
+    okr.krs.forEach((kr,ki)=>{
+      const k=`q${qi}_${oi}_${ki}`,tgt=qprData[k+"_t"]||"",act=qprData[k+"_a"]||"",rag=qprData[k+"_r"]||"G";
+      const score=(tgt&&act)?Math.round(parseFloat(act)/parseFloat(tgt)*100)+"%" : "&mdash;";
+      const ragBg=rag==="G"?"#dcfce7":rag==="A"?"#fef9c3":"#fee2e2";
+      const ragCol=rag==="G"?"#166534":rag==="A"?"#92400e":"#991b1b";
+      html+=`<tr style="background:${(oi+ki)%2===0?"#fff":"#f9fafb"}">
+        <td style="font-weight:${ki===0?600:400};font-size:${ki===0?12:11}px;color:${ki===0?"#111827":"#6b7280"}">${ki===0?okr.obj:""}</td>
+        <td>${kr}</td>
+        <td class="r"><input type="text" value="${tgt}" data-k="${k}_t" oninput="onQpr(this)" style="width:70px;text-align:right"></td>
+        <td class="r"><input type="text" value="${act}" data-k="${k}_a" oninput="onQpr(this)" style="width:70px;text-align:right"></td>
+        <td class="r" style="color:#6b7280">${score}</td>
+        <td style="text-align:center">
+          <select data-k="${k}_r" onchange="onQpr(this)" style="font-size:11px;padding:2px 5px;background:${ragBg};border-color:${ragCol};color:${ragCol}">
+            <option value="G" ${rag==="G"?"selected":""}>Green</option>
+            <option value="A" ${rag==="A"?"selected":""}>Amber</option>
+            <option value="R" ${rag==="R"?"selected":""}>Red</option>
+          </select>
+        </td>
+      </tr>`;
+    });
+  });
+  html+=`</tbody></table></div>`;
+  html+=`<div class="card" style="padding:0;overflow:hidden">
+    <div style="background:#1e3a5f;color:#fff;padding:8px 14px;font-size:12px;font-weight:600">Next quarter &mdash; top priorities</div>`;
+  for(let n=1;n<=5;n++){
+    const k=`q${qi}_p${n}`;
+    html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:${n<5?"1px solid #f3f4f6":"none"};background:${n%2===0?"#f9fafb":"#fff"}">
+      <span style="font-size:11px;color:#9ca3af;min-width:20px">#${n}</span>
+      <input type="text" value="${(qprData[k]||"").replace(/"/g,"&quot;")}" placeholder="Priority ${n}..." data-k="${k}" oninput="onQpr(this)">
+    </div>`;
+  }
+  html+=`</div>`;
+  document.getElementById("qpr-body").innerHTML=html;
+}
+
+function onQpr(el){qprData[el.dataset.k]=el.value;}
+
+function renderScenarios(){
+  let cards="";
+  ["Conservative","Base","Stretch"].forEach(sc=>{
+    const rev=RAMP[sc].reduce((a,t,i)=>a+t*ARPU[sc],0);
+    const costs=MONTHS.reduce((a,_,mi)=>a+allCosts(mi,sc,{}),0);
+    const gp=rev-costs;
+    cards+=`<div class="sc-card ${sc==="Base"?"hl":""}">
+      ${sc==="Base"?`<div style="background:#eff6ff;color:#1d4ed8;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;display:inline-block;margin-bottom:8px">Target</div>`:""}
+      <div style="font-weight:600;font-size:14px;margin-bottom:4px">${sc}</div>
+      <div style="font-size:20px;font-weight:700;color:#1d4ed8;margin-bottom:4px">${fmtM(rev)}</div>
+      <div style="font-size:11px;color:#6b7280">${RAMP[sc][11]} tenants &middot; ${fmt(ARPU[sc])} ARPU</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div style="background:#f9fafb;border-radius:6px;padding:8px 10px">
+          <div style="font-size:10px;color:#6b7280">Annual costs</div>
+          <div style="font-weight:600;font-size:13px">${fmtM(costs)}</div>
+        </div>
+        <div style="background:${gp>=0?"#dcfce7":"#fef2f2"};border-radius:6px;padding:8px 10px">
+          <div style="font-size:10px;color:#6b7280">Gross profit</div>
+          <div style="font-weight:600;font-size:13px;color:${gp>=0?"#166534":"#991b1b"}">${fmtM(gp)}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-top:8px">Full-year margin: <strong style="color:#111827">${Math.round(gp/rev*100)}%</strong></div>
+    </div>`;
+  });
+  document.getElementById("sc-cards").innerHTML=cards;
+  let tbl=`<thead><tr>
+    <th style="background:#111827;color:#fff;padding:8px 10px;font-size:12px">Cost group</th>
+    <th class="r" style="background:#111827;color:#fff;padding:8px 10px;font-size:12px">Conservative</th>
+    <th class="r" style="background:#111827;color:#fff;padding:8px 10px;font-size:12px">Base</th>
+    <th class="r" style="background:#111827;color:#fff;padding:8px 10px;font-size:12px">Stretch</th>
+  </tr></thead><tbody>`;
+  let gts={Conservative:0,Base:0,Stretch:0};
+  GROUPS.forEach((grp,gi)=>{
+    const tots={};
+    ["Conservative","Base","Stretch"].forEach(sc=>{tots[sc]=MONTHS.reduce((a,_,mi)=>a+groupTotal(grp,mi,sc,{}),0);gts[sc]+=tots[sc];});
+    tbl+=`<tr style="background:${gi%2===0?"#fff":"#f9fafb"}">
+      <td style="font-weight:600;color:${grp.col}">${grp.g}</td>
+      ${["Conservative","Base","Stretch"].map(sc=>`<td class="r">${fmt(tots[sc])}</td>`).join("")}
+    </tr>`;
+  });
+  const revs={Conservative:RAMP.Conservative.reduce((a,t)=>a+t*ARPU.Conservative,0),Base:RAMP.Base.reduce((a,t)=>a+t*ARPU.Base,0),Stretch:RAMP.Stretch.reduce((a,t)=>a+t*ARPU.Stretch,0)};
+  tbl+=`
+    <tr style="background:#111827"><td style="color:#fff;font-weight:600;padding:8px 10px">Annual total costs</td>${["Conservative","Base","Stretch"].map(sc=>`<td class="r" style="color:#fff;font-weight:600;padding:8px 10px">${fmt(gts[sc])}</td>`).join("")}</tr>
+    <tr style="background:#eff6ff"><td style="color:#1e40af;font-weight:600;padding:7px 10px">Annual revenue</td>${["Conservative","Base","Stretch"].map(sc=>`<td class="r" style="color:#1e40af;font-weight:600;padding:7px 10px">${fmt(revs[sc])}</td>`).join("")}</tr>
+    <tr style="background:#dcfce7"><td style="color:#166534;font-weight:600;padding:7px 10px">Annual gross profit</td>${["Conservative","Base","Stretch"].map(sc=>`<td class="r" style="color:#166534;font-weight:600;padding:7px 10px">${fmt(revs[sc]-gts[sc])} (${Math.round((revs[sc]-gts[sc])/revs[sc]*100)}%)</td>`).join("")}</tr>
+  `;
+  document.getElementById("sc-table").innerHTML=tbl+"</tbody>";
+}
+
+populateMo("bud-mo");
+populateMo("act-mo");
+populateMo("mpr-mo");
+renderDash();
+renderBudget();
+</script>
+</body>
+</html>
