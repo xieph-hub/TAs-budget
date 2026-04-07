@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axis OS — Personal Finance</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Epilogue:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0d0f12;
+    --bg2: #14171c;
+    --bg3: #1c2028;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0ede8;
+    --muted: #7a7f8a;
+    --muted2: #4a4f5a;
+    --accent: #4ade80;
+    --accent2: #22d3ee;
+    --accent3: #f59e0b;
+    --accent4: #f87171;
+    --accent5: #a78bfa;
+    --indigo: #6366f1;
+    --serif: 'DM Serif Display', Georgia, serif;
+    --sans: 'Epilogue', system-ui, sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+  
+  .shell { display: flex; min-height: 100vh; }
+  
+  /* SIDEBAR */
+  .sidebar { width: 220px; background: var(--bg2); border-right: 1px solid var(--border); padding: 1.5rem 0; position: fixed; height: 100vh; overflow-y: auto; z-index: 100; }
+  .logo { padding: 0 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .logo-mark { font-family: var(--serif); font-size: 20px; letter-spacing: -0.3px; color: var(--text); }
+  .logo-mark span { color: var(--accent); }
+  .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+  
+  .nav-section { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+  .nav-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted2); padding: 0 1.25rem; margin-bottom: 0.5rem; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 0.5rem 1.25rem; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 400; transition: all 0.15s; }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--text); background: rgba(74,222,128,0.07); border-right: 2px solid var(--accent); }
+  .nav-icon { width: 16px; text-align: center; font-size: 13px; }
+  
+  /* MAIN */
+  .main { margin-left: 220px; flex: 1; padding: 2rem 2.5rem; max-width: 1200px; }
+  
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 2rem; }
+  .page-title { font-family: var(--serif); font-size: 28px; color: var(--text); }
+  .page-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .month-selector { display: flex; align-items: center; gap: 12px; margin-top: 1rem; }
+  .month-btn { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); padding: 0.35rem 1rem; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: var(--sans); }
+  .month-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .current-month { font-size: 15px; font-weight: 500; min-width: 150px; text-align: center; }
+  
+  /* TABS */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
+  .tab { padding: 0.6rem 1.25rem; cursor: pointer; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+  
+  /* METRIC CARDS */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  .metric { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+  .metric-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .metric-value { font-family: var(--mono); font-size: 22px; font-weight: 500; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .metric-bar { height: 3px; background: var(--bg3); border-radius: 2px; margin-top: 10px; }
+  .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+  .green { color: var(--accent); }
+  .cyan { color: var(--accent2); }
+  .amber { color: var(--accent3); }
+  .red { color: var(--accent4); }
+  .purple { color: var(--accent5); }
+  .indigo { color: var(--indigo); }
+  
+  /* SECTIONS */
+  .section-title { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  
+  /* BUDGET TABLE */
+  .budget-grid { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 2rem; }
+  .budget-row { display: grid; grid-template-columns: 30px 1fr 110px 110px 110px 80px; gap: 0; align-items: center; padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .budget-row:hover { background: var(--bg3); }
+  .budget-row.header { background: var(--bg3); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .budget-row.category { background: rgba(255,255,255,0.02); font-weight: 500; font-size: 12px; color: var(--muted); padding: 0.5rem 1rem 0.3rem; border-bottom: 1px solid var(--border); }
+  .budget-row.total { background: var(--bg3); font-weight: 600; border-top: 2px solid var(--border2); }
+  .budget-cell { font-family: var(--mono); font-size: 13px; }
+  .budget-cell.name { font-family: var(--sans); font-size: 13px; color: var(--text); }
+  .budget-cell.note { font-size: 11px; color: var(--muted); font-family: var(--sans); }
+  .pill { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 20px; font-family: var(--sans); }
+  .pill-green { background: rgba(74,222,128,0.12); color: var(--accent); }
+  .pill-amber { background: rgba(245,158,11,0.12); color: var(--accent3); }
+  .pill-red { background: rgba(248,113,113,0.12); color: var(--accent4); }
+  .pill-cyan { background: rgba(34,211,238,0.12); color: var(--accent2); }
+  .pill-purple { background: rgba(167,139,250,0.12); color: var(--accent5); }
+  
+  /* INPUT CELLS */
+  .editable { background: transparent; border: none; color: var(--text); font-family: var(--mono); font-size: 13px; width: 100%; text-align: right; outline: none; }
+  .editable:focus { color: var(--accent); }
+  .editable-wrap { border-bottom: 1px dashed var(--muted2); }
+  
+  /* CHART CONTAINER */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+  .chart-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+  .chart-title { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1rem; }
+  
+  /* INCOME TABLE */
+  .income-grid { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 2rem; }
+  .income-row { display: grid; grid-template-columns: 1fr 120px 120px 100px; gap: 0; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+  .income-row:hover { background: var(--bg3); }
+  .income-row.header { background: var(--bg3); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  
+  /* DEBT TABLE */
+  .debt-grid { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 2rem; }
+  .debt-row { display: grid; grid-template-columns: 1fr 110px 110px 110px 100px; gap: 0; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+  .debt-row.header { background: var(--bg3); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  
+  /* PROGRESS */
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 0.75rem; }
+  .progress-label { font-size: 12px; color: var(--text); width: 160px; flex-shrink: 0; }
+  .progress-bar { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+  .progress-pct { font-family: var(--mono); font-size: 12px; color: var(--muted); width: 40px; text-align: right; }
+  
+  /* REVIEW */
+  .review-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .review-month { font-family: var(--serif); font-size: 20px; margin-bottom: 1rem; }
+  .review-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+  .review-stat { text-align: center; }
+  .review-stat-val { font-family: var(--mono); font-size: 18px; font-weight: 500; }
+  .review-stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  textarea.review-notes { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: var(--sans); font-size: 13px; padding: 0.75rem; resize: vertical; min-height: 80px; outline: none; }
+  textarea.review-notes:focus { border-color: var(--accent); }
+  
+  /* BUTTONS */
+  .btn { background: transparent; border: 1px solid var(--border2); color: var(--text); padding: 0.45rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: var(--sans); transition: all 0.15s; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+  .btn-primary:hover { background: #22c55e; border-color: #22c55e; color: #000; }
+  
+  /* WEALTH SEQUENCE */
+  .sequence { display: flex; gap: 0; margin-bottom: 2rem; }
+  .seq-step { flex: 1; background: var(--bg2); border: 1px solid var(--border); padding: 1rem; position: relative; }
+  .seq-step:not(:last-child)::after { content: '→'; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); color: var(--muted); z-index: 1; font-size: 14px; }
+  .seq-step:first-child { border-radius: 8px 0 0 8px; }
+  .seq-step:last-child { border-radius: 0 8px 8px 0; }
+  .seq-num { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .seq-title { font-size: 12px; font-weight: 500; margin: 4px 0; }
+  .seq-amount { font-family: var(--mono); font-size: 13px; }
+  .seq-step.active-step { border-color: var(--accent); background: rgba(74,222,128,0.05); }
+  
+  /* TOAST */
+  .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--bg3); border: 1px solid var(--accent); border-radius: 8px; padding: 0.75rem 1.25rem; font-size: 13px; color: var(--accent); display: none; z-index: 999; }
+  
+  /* RESPONSIVE */
+  @media (max-width: 900px) { .metrics { grid-template-columns: 1fr 1fr; } .chart-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 700px) { .sidebar { transform: translateX(-220px); } .main { margin-left: 0; padding: 1rem; } .metrics { grid-template-columns: 1fr; } }
+  
+  select.styled { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); padding: 0.35rem 0.75rem; border-radius: 6px; font-family: var(--sans); font-size: 13px; outline: none; cursor: pointer; }
+  
+  .waterfall-note { font-size: 12px; color: var(--muted); background: var(--bg3); border-left: 3px solid var(--accent); padding: 0.75rem 1rem; border-radius: 0 6px 6px 0; margin-bottom: 1.5rem; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">Axis<span>OS</span></div>
+      <div class="logo-sub">Personal Finance</div>
+    </div>
+    
+    <div class="nav-section">
+      <div class="nav-label">Dashboard</div>
+      <div class="nav-item active" onclick="showPanel('overview')">
+        <span class="nav-icon">◈</span> Overview
+      </div>
+      <div class="nav-item" onclick="showPanel('budget')">
+        <span class="nav-icon">▦</span> Monthly Budget
+      </div>
+      <div class="nav-item" onclick="showPanel('income')">
+        <span class="nav-icon">↗</span> Income Sources
+      </div>
+    </div>
+    
+    <div class="nav-section">
+      <div class="nav-label">Planning</div>
+      <div class="nav-item" onclick="showPanel('debt')">
+        <span class="nav-icon">⊖</span> Debt Tracker
+      </div>
+      <div class="nav-item" onclick="showPanel('investments')">
+        <span class="nav-icon">◎</span> Investments
+      </div>
+      <div class="nav-item" onclick="showPanel('emergency')">
+        <span class="nav-icon">⊕</span> Emergency Fund
+      </div>
+    </div>
+    
+    <div class="nav-section">
+      <div class="nav-label">Review</div>
+      <div class="nav-item" onclick="showPanel('review')">
+        <span class="nav-icon">◷</span> Monthly Review
+      </div>
+      <div class="nav-item" onclick="showPanel('trends')">
+        <span class="nav-icon">∿</span> Trends & Charts
+      </div>
+      <div class="nav-item" onclick="showPanel('wealth')">
+        <span class="nav-icon">✦</span> Wealth Sequence
+      </div>
+    </div>
+    
+    <div style="padding: 1.5rem 1.25rem; margin-top: auto;">
+      <div style="font-size: 10px; color: var(--muted2); line-height: 1.8;">
+        Axis Victor Ephraim<br>
+        ThinkATS Technology Solutions<br>
+        <span style="color: var(--accent);">Phase I — Launch</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    
+    <!-- MONTH NAVIGATION -->
+    <div class="page-header">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div class="page-title" id="pageTitle">Overview</div>
+          <div class="page-sub" id="pageSub">Personal financial command center</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div class="month-selector">
+            <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+            <div class="current-month" id="currentMonthDisplay">May 2025</div>
+            <button class="month-btn" onclick="changeMonth(1)">›</button>
+          </div>
+          <button class="btn btn-primary" onclick="saveData()">Save</button>
+          <button class="btn" onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== OVERVIEW PANEL ==================== -->
+    <div id="panel-overview" class="panel active">
+      <div class="metrics" id="overviewMetrics"></div>
+      
+      <div class="section-title">cash waterfall — this month</div>
+      <div class="waterfall-note" id="waterfallNote"></div>
+      
+      <div class="chart-grid">
+        <div class="chart-box">
+          <div class="chart-title">Spending breakdown</div>
+          <div style="position: relative; height: 260px;">
+            <canvas id="spendChart" role="img" aria-label="Pie chart of monthly spending by category"></canvas>
+          </div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Net position — rolling 12 months</div>
+          <div style="position: relative; height: 260px;">
+            <canvas id="netChart" role="img" aria-label="Line chart of net savings over 12 months"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section-title">wealth sequence — current focus</div>
+      <div class="sequence" id="seqDisplay"></div>
+    </div>
+
+    <!-- ==================== BUDGET PANEL ==================== -->
+    <div id="panel-budget" class="panel">
+      <div class="metrics" id="budgetMetrics"></div>
+
+      <div class="section-title">monthly budget allocation</div>
+
+      <div class="budget-grid" id="budgetTable"></div>
+      
+      <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+        <button class="btn" onclick="addCustomLine()">+ Add Line Item</button>
+        <button class="btn" onclick="resetBudget()">Reset to Defaults</button>
+      </div>
+    </div>
+
+    <!-- ==================== INCOME PANEL ==================== -->
+    <div id="panel-income" class="panel">
+      <div class="metrics" id="incomeMetrics"></div>
+      <div class="section-title">income sources</div>
+      <div class="income-grid" id="incomeTable"></div>
+      <button class="btn" style="margin-top:1rem;" onclick="addIncomeSource()">+ Add Income Source</button>
+      
+      <div style="margin-top: 2rem;">
+        <div class="section-title">income diversification target</div>
+        <div id="incomeDiversity"></div>
+      </div>
+    </div>
+
+    <!-- ==================== DEBT PANEL ==================== -->
+    <div id="panel-debt" class="panel">
+      <div class="metrics" id="debtMetrics"></div>
+      <div class="section-title">debt obligations</div>
+      <div class="debt-grid" id="debtTable"></div>
+      <button class="btn" style="margin-top:1rem;" onclick="addDebt()">+ Add Debt</button>
+      
+      <div style="margin-top: 2rem;">
+        <div class="section-title">debt freedom timeline</div>
+        <div style="position: relative; height: 200px;">
+          <canvas id="debtChart" role="img" aria-label="Debt payoff timeline bar chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INVESTMENTS PANEL ==================== -->
+    <div id="panel-investments" class="panel">
+      <div class="metrics" id="investMetrics"></div>
+      <div class="section-title">investment portfolio</div>
+      <div class="budget-grid" id="investTable"></div>
+      <button class="btn" style="margin-top:1rem;" onclick="addInvestment()">+ Add Investment</button>
+      
+      <div style="margin-top: 2rem;">
+        <div class="section-title">target allocation</div>
+        <div style="position: relative; height: 220px;">
+          <canvas id="allocChart" role="img" aria-label="Investment allocation donut chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== EMERGENCY FUND PANEL ==================== -->
+    <div id="panel-emergency" class="panel">
+      <div class="metrics" id="efMetrics"></div>
+      
+      <div class="section-title">emergency fund tracker</div>
+      <div class="review-card">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 0.75rem;">Monthly living expenses</div>
+            <div class="editable-wrap">
+              <input type="number" class="editable" id="ef_expenses" value="1300000" onchange="updateEF()">
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 0.75rem;">Target months of runway</div>
+            <div class="editable-wrap">
+              <input type="number" class="editable" id="ef_months" value="6" min="3" max="12" onchange="updateEF()">
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 0.75rem;">Current savings (₦)</div>
+            <div class="editable-wrap">
+              <input type="number" class="editable" id="ef_current" value="0" onchange="updateEF()">
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 0.75rem;">Monthly contribution</div>
+            <div class="editable-wrap">
+              <input type="number" class="editable" id="ef_contribution" value="50000" onchange="updateEF()">
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 2rem;" id="efProgress"></div>
+        <div style="margin-top: 1.5rem; position: relative; height: 200px;">
+          <canvas id="efChart" role="img" aria-label="Emergency fund build-up chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MONTHLY REVIEW PANEL ==================== -->
+    <div id="panel-review" class="panel">
+      <div class="section-title">monthly review — <span id="reviewMonthLabel"></span></div>
+      
+      <div class="review-card">
+        <div class="review-grid" id="reviewStats"></div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 0.5rem;">What went well?</div>
+            <textarea class="review-notes" id="review_wins" placeholder="Log your financial wins this month..."></textarea>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 0.5rem;">What to improve?</div>
+            <textarea class="review-notes" id="review_improve" placeholder="Areas that need work..."></textarea>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 0.5rem;">Key decisions made</div>
+            <textarea class="review-notes" id="review_decisions" placeholder="Financial decisions logged this month..."></textarea>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 0.5rem;">Next month focus</div>
+            <textarea class="review-notes" id="review_next" placeholder="Priority for next month..."></textarea>
+          </div>
+        </div>
+        
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <div style="font-size: 12px; color: var(--muted);">Monthly rating:</div>
+          <div style="display: flex; gap: 6px;" id="ratingStars"></div>
+          <button class="btn btn-primary" onclick="saveReview()">Save Review</button>
+        </div>
+      </div>
+      
+      <div class="section-title">review history</div>
+      <div id="reviewHistory"></div>
+    </div>
+
+    <!-- ==================== TRENDS PANEL ==================== -->
+    <div id="panel-trends" class="panel">
+      <div class="section-title">spending vs income — 12 month trend</div>
+      <div style="position: relative; height: 300px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 2rem;">
+        <canvas id="trendChart" role="img" aria-label="12 month income vs spending trend"></canvas>
+      </div>
+      
+      <div class="section-title">category breakdown over time</div>
+      <div style="position: relative; height: 280px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem;">
+        <canvas id="categoryTrendChart" role="img" aria-label="Spending categories stacked bar chart"></canvas>
+      </div>
+    </div>
+
+    <!-- ==================== WEALTH SEQUENCE PANEL ==================== -->
+    <div id="panel-wealth" class="panel">
+      <div class="section-title">personal wealth sequencing framework</div>
+      
+      <div class="waterfall-note" style="margin-bottom: 2rem;">
+        Your wealth-building order: CEO Salary → Debt Clearance → Emergency Fund → Real Assets. This is the north star — every naira follows this sequence.
+      </div>
+      
+      <div class="sequence" id="wealthSeq"></div>
+      
+      <div class="section-title">asset class targets</div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;" id="assetClasses"></div>
+      
+      <div class="section-title">real estate corridor watchlist</div>
+      <div class="budget-grid" id="reCorridor"></div>
+      
+      <div class="section-title">long-term wealth projections</div>
+      <div style="position: relative; height: 260px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem;">
+        <canvas id="wealthChart" role="img" aria-label="Wealth projection chart over 5 years"></canvas>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast">Saved ✓</div>
+
+<script>
+// ============================================================
+// DATA MODEL
+// ============================================================
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let currentMonth = 4; // 0-indexed, start May
+let currentYear = 2025;
+let currentRating = 4;
+
+const DEFAULT_INCOME = 1300000;
+
+const DATA = {
+  budget: {
+    housing: { label: 'Housing & Living', items: [
+      { name: 'Rent (Victoria Island / Lekki Phase 1)', planned: 300000, actual: 0, note: 'Target area reflects direction of travel', tag: 'fixed' },
+      { name: 'Electricity (NEPA + generator)', planned: 25000, actual: 0, note: '', tag: 'fixed' },
+      { name: 'Water / facilities', planned: 5000, actual: 0, note: '', tag: 'fixed' },
+      { name: 'Household supplies', planned: 15000, actual: 0, note: '', tag: 'variable' },
+    ]},
+    food: { label: 'Food & Lifestyle', items: [
+      { name: 'Groceries & cooking', planned: 60000, actual: 0, note: '', tag: 'variable' },
+      { name: 'Restaurants & dining', planned: 40000, actual: 0, note: 'Grilled fish & palm wine fund', tag: 'variable' },
+    ]},
+    transport: { label: 'Transportation', items: [
+      { name: 'Transport (ride-share / fuel)', planned: 150000, actual: 0, note: '', tag: 'fixed' },
+    ]},
+    health: { label: 'Health & Fitness', items: [
+      { name: 'Gym membership', planned: 50000, actual: 0, note: '', tag: 'fixed' },
+      { name: 'Health / medical', planned: 15000, actual: 0, note: 'Buffer', tag: 'variable' },
+    ]},
+    tech: { label: 'Tech & Connectivity', items: [
+      { name: 'Internet (fibre)', planned: 35000, actual: 0, note: '', tag: 'fixed' },
+      { name: 'Phone / SIM', planned: 5000, actual: 0, note: '', tag: 'fixed' },
+      { name: 'Software subscriptions', planned: 15000, actual: 0, note: 'Claude Pro, tools, etc', tag: 'variable' },
+    ]},
+    debt: { label: 'Debt Repayment', items: [
+      { name: 'VGG repayment agreement', planned: 50000, actual: 0, note: 'Signed — must honour', tag: 'debt' },
+      { name: 'Other debt repayment', planned: 30000, actual: 0, note: 'Flexible buffer', tag: 'debt' },
+    ]},
+    savings: { label: 'Savings & Investments', items: [
+      { name: 'Emergency fund contribution', planned: 50000, actual: 0, note: 'Building 6-month runway', tag: 'savings' },
+      { name: 'ThinkATS equity reinvestment', planned: 100000, actual: 0, note: 'OpEx contributions when needed', tag: 'investment' },
+      { name: 'Real estate fund (Ibeju-Lekki target)', planned: 50000, actual: 0, note: 'Land corridor accumulation', tag: 'investment' },
+      { name: 'REIT / financial instruments', planned: 30000, actual: 0, note: 'Bridge instrument before land', tag: 'investment' },
+    ]},
+    personal: { label: 'Personal & Growth', items: [
+      { name: 'Books, courses, development', planned: 20000, actual: 0, note: '', tag: 'variable' },
+      { name: 'Clothing', planned: 20000, actual: 0, note: '', tag: 'variable' },
+      { name: 'Giving / family support', planned: 30000, actual: 0, note: 'Intentional generosity', tag: 'variable' },
+      { name: 'Entertainment & leisure', planned: 15000, actual: 0, note: '', tag: 'variable' },
+    ]},
+    flex: { label: 'Flex Buffer', items: [
+      { name: 'Unplanned / overflow', planned: 20000, actual: 0, note: 'Do not touch unless needed', tag: 'buffer' },
+    ]},
+  },
+
+  income: [
+    { source: 'KPMG Salary (primary)', type: 'Employment', planned: 1300000, actual: 0, status: 'expected', note: 'Offer pending — Q2 2025' },
+    { source: 'ThinkATS CEO Stipend', type: 'Business', planned: 0, actual: 0, status: 'pending', note: 'Activate at first paying tenant milestone' },
+    { source: 'PeopleOS HR Consulting', type: 'Consulting', planned: 0, actual: 0, status: 'dormant', note: 'Ad hoc projects' },
+    { source: 'ThinkATS Dividends', type: 'Business', planned: 0, actual: 0, status: 'future', note: 'Target: Month 12+ when 100 tenants' },
+    { source: 'Content / LinkedIn revenue', type: 'Content', planned: 0, actual: 0, status: 'building', note: 'Monetisation horizon 6-12 months' },
+    { source: 'Consulting / advisory fees', type: 'Advisory', planned: 0, actual: 0, status: 'future', note: 'HR advisory, startup fractional work' },
+    { source: 'Crypto (capped asset, max 5%)', type: 'Investment', planned: 0, actual: 0, status: 'dormant', note: 'Deliberately de-risked — capped exposure' },
+  ],
+
+  debt: [
+    { name: 'VGG Repayment Agreement', balance: 0, monthlyPayment: 50000, rate: 0, priority: 'high', note: 'Signed agreement — enter total balance' },
+    { name: 'Other obligation 1', balance: 0, monthlyPayment: 30000, rate: 0, priority: 'medium', note: '' },
+  ],
+
+  investments: [
+    { name: 'ThinkATS Equity (founder stake)', type: 'Business Equity', monthlyContrib: 100000, balance: 0, target: 'PRIMARY', note: 'North Star asset' },
+    { name: 'Land — Ibeju-Lekki corridor', type: 'Real Estate', monthlyContrib: 50000, balance: 0, target: '₦5M deposit', note: 'Priority land corridor' },
+    { name: 'Epe / Mowe-Ibafo corridor', type: 'Real Estate', monthlyContrib: 0, balance: 0, target: '₦3M deposit', note: 'Secondary corridor watch' },
+    { name: 'REIT / Mutual Fund', type: 'Financial', monthlyContrib: 30000, balance: 0, target: 'Bridge to land', note: 'Cowrywise / ARM' },
+    { name: 'Emergency Fund', type: 'Liquid', monthlyContrib: 50000, balance: 0, target: '₦7.8M (6mo)', note: 'Stanbic / high-yield savings' },
+  ],
+
+  monthlyData: {},
+  reviews: {},
+  ef: { current: 0 },
+};
+
+// ============================================================
+// FORMATTING
+// ============================================================
+function fmt(n) {
+  return '₦' + Math.round(n).toLocaleString('en-NG');
+}
+function pct(a, b) {
+  if (!b) return '0%';
+  return Math.round((a / b) * 100) + '%';
+}
+function totalPlanned() {
+  let t = 0;
+  Object.values(DATA.budget).forEach(cat => cat.items.forEach(i => t += i.planned));
+  return t;
+}
+function totalActual() {
+  let t = 0;
+  Object.values(DATA.budget).forEach(cat => cat.items.forEach(i => t += (i.actual || 0)));
+  return t;
+}
+function totalIncomePlanned() {
+  return DATA.income.reduce((s, i) => s + i.planned, 0);
+}
+function totalIncomeActual() {
+  return DATA.income.reduce((s, i) => s + (i.actual || 0), 0);
+}
+function totalDebt() {
+  return DATA.debt.reduce((s, d) => s + d.balance, 0);
+}
+function monthKey() {
+  return `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const titles = {
+  overview: ['Overview', 'Personal financial command center'],
+  budget: ['Monthly Budget', 'Plan and track every naira'],
+  income: ['Income Sources', 'All revenue streams — current and future'],
+  debt: ['Debt Tracker', 'Accelerate to zero'],
+  investments: ['Investments', 'Build the asset base'],
+  emergency: ['Emergency Fund', 'Your financial moat'],
+  review: ['Monthly Review', 'Reflect, learn, adjust'],
+  trends: ['Trends & Analytics', '12-month rolling picture'],
+  wealth: ['Wealth Sequence', 'The long game'],
+};
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + name + "'")) {
+      n.classList.add('active');
+    }
+  });
+  document.getElementById('pageTitle').textContent = titles[name][0];
+  document.getElementById('pageSub').textContent = titles[name][1];
+  renderPanel(name);
+}
+
+function changeMonth(dir) {
+  currentMonth += dir;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  document.getElementById('currentMonthDisplay').textContent = MONTHS[currentMonth] + ' ' + currentYear;
+  const active = document.querySelector('.panel.active');
+  if (active) renderPanel(active.id.replace('panel-', ''));
+}
+
+function renderPanel(name) {
+  switch(name) {
+    case 'overview': renderOverview(); break;
+    case 'budget': renderBudget(); break;
+    case 'income': renderIncome(); break;
+    case 'debt': renderDebt(); break;
+    case 'investments': renderInvestments(); break;
+    case 'emergency': renderEmergency(); break;
+    case 'review': renderReview(); break;
+    case 'trends': renderTrends(); break;
+    case 'wealth': renderWealth(); break;
+  }
+}
+
+// ============================================================
+// OVERVIEW
+// ============================================================
+let spendChartInst, netChartInst;
+
+function renderOverview() {
+  const income = totalIncomePlanned() || DEFAULT_INCOME;
+  const spent = totalPlanned();
+  const net = income - spent;
+  const savingsPlanned = (DATA.budget.savings?.items || []).reduce((s,i) => s+i.planned, 0) + (DATA.budget.debt?.items || []).reduce((s,i) => s+i.planned, 0);
+
+  document.getElementById('overviewMetrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Monthly Income</div>
+      <div class="metric-value green">${fmt(income)}</div>
+      <div class="metric-sub">${DATA.income.filter(i=>i.planned>0).length} active stream(s)</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:100%;background:var(--accent)"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total Budgeted</div>
+      <div class="metric-value amber">${fmt(spent)}</div>
+      <div class="metric-sub">${pct(spent, income)} of income</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(100,Math.round(spent/income*100))}%;background:var(--accent3)"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Net / Surplus</div>
+      <div class="metric-value ${net >= 0 ? 'green' : 'red'}">${fmt(net)}</div>
+      <div class="metric-sub">${net >= 0 ? 'Positive position' : 'Budget deficit!'}</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(100,Math.abs(Math.round(net/income*100)))}%;background:${net>=0?'var(--accent)':'var(--accent4)'}"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Savings Rate</div>
+      <div class="metric-value cyan">${pct(savingsPlanned, income)}</div>
+      <div class="metric-sub">Target: ≥20%</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(100,Math.round(savingsPlanned/income*100))}%;background:var(--accent2)"></div></div>
+    </div>
+  `;
+
+  // Waterfall note
+  const ef = DATA.ef.current || 0;
+  const efTarget = 6 * 1300000;
+  document.getElementById('waterfallNote').innerHTML =
+    `Income: <strong>${fmt(income)}</strong> → Fixed costs: <strong>${fmt(spent * 0.65)}</strong> → Investments: <strong>${fmt(savingsPlanned)}</strong> → Net buffer: <strong class="${net>=0?'green':'red'}">${fmt(net)}</strong> | Emergency fund: ${Math.round(ef/efTarget*100)}% funded`;
+
+  // Spend chart
+  const catLabels = Object.values(DATA.budget).map(c => c.label);
+  const catData = Object.values(DATA.budget).map(c => c.items.reduce((s,i) => s+i.planned, 0));
+  const colors = ['#6366f1','#4ade80','#f59e0b','#22d3ee','#f87171','#a78bfa','#34d399','#fb923c','#94a3b8'];
+  
+  if (spendChartInst) spendChartInst.destroy();
+  spendChartInst = new Chart(document.getElementById('spendChart'), {
+    type: 'doughnut',
+    data: {
+      labels: catLabels,
+      datasets: [{ data: catData, backgroundColor: colors, borderWidth: 1, borderColor: '#14171c' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed)} (${pct(ctx.parsed, spent)})` } }
+      }
+    }
+  });
+
+  // Net chart — simulated 12 month
+  const months = [];
+  let m = currentMonth, y = currentYear;
+  for (let i = 11; i >= 0; i--) {
+    let mi = m - i; let yi = y;
+    while (mi < 0) { mi += 12; yi--; }
+    months.push(MONTHS[mi % 12] + ' ' + yi);
+  }
+  const netData = months.map((_, idx) => {
+    const base = net;
+    return Math.round(base * (0.8 + idx * 0.02) + (Math.random() - 0.4) * 30000);
+  });
+
+  if (netChartInst) netChartInst.destroy();
+  netChartInst = new Chart(document.getElementById('netChart'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Net Savings',
+        data: netData,
+        borderColor: '#4ade80',
+        backgroundColor: 'rgba(74,222,128,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#4ade80',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7a7f8a', font: { size: 10 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#7a7f8a', font: { size: 10 }, callback: v => '₦' + (v/1000).toFixed(0)+'k' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+
+  // Sequence mini
+  renderSeqDisplay();
+}
+
+function renderSeqDisplay() {
+  const steps = [
+    { num: '01', title: 'CEO Salary', amount: fmt(DEFAULT_INCOME), active: true },
+    { num: '02', title: 'Debt Clearance', amount: totalDebt() > 0 ? fmt(totalDebt()) + ' left' : 'Set balance', active: false },
+    { num: '03', title: 'Emergency Fund', amount: pct(DATA.ef.current || 0, 6*1300000) + ' funded', active: false },
+    { num: '04', title: 'Real Assets', amount: 'Ibeju-Lekki corridor', active: false },
+  ];
+  document.getElementById('seqDisplay').innerHTML = steps.map(s => `
+    <div class="seq-step ${s.active ? 'active-step' : ''}">
+      <div class="seq-num">${s.num}</div>
+      <div class="seq-title">${s.title}</div>
+      <div class="seq-amount ${s.active ? 'green' : 'muted'}">${s.amount}</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// BUDGET
+// ============================================================
+function renderBudget() {
+  const income = totalIncomePlanned() || DEFAULT_INCOME;
+  const spent = totalPlanned();
+  const actual = totalActual();
+  const net = income - spent;
+
+  document.getElementById('budgetMetrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Income</div>
+      <div class="metric-value green">${fmt(income)}</div>
+      <div class="metric-sub">Monthly gross</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Budgeted Out</div>
+      <div class="metric-value amber">${fmt(spent)}</div>
+      <div class="metric-sub">${pct(spent, income)} of income</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Actual Spent</div>
+      <div class="metric-value ${actual > spent ? 'red' : 'cyan'}">${fmt(actual)}</div>
+      <div class="metric-sub">${actual ? pct(actual, spent) + ' of budget' : 'Enter actuals below'}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Net Position</div>
+      <div class="metric-value ${net >= 0 ? 'green' : 'red'}">${fmt(net)}</div>
+      <div class="metric-sub">${net >= 0 ? 'Surplus' : 'Over budget!'}</div>
+    </div>
+  `;
+
+  const tagColors = { fixed:'pill-cyan', variable:'pill-amber', debt:'pill-red', savings:'pill-green', investment:'pill-purple', buffer:'pill-amber' };
+
+  let html = `
+    <div class="budget-row header">
+      <div></div>
+      <div>Item</div>
+      <div class="budget-cell" style="text-align:right">Planned (₦)</div>
+      <div class="budget-cell" style="text-align:right">Actual (₦)</div>
+      <div class="budget-cell" style="text-align:right">Variance</div>
+      <div class="budget-cell" style="text-align:center">Type</div>
+    </div>
+  `;
+
+  Object.entries(DATA.budget).forEach(([key, cat]) => {
+    const catTotal = cat.items.reduce((s,i) => s+i.planned, 0);
+    html += `<div class="budget-row category"><div></div><div style="color:var(--muted2)">${cat.label}</div><div class="budget-cell" style="text-align:right;color:var(--muted)">${fmt(catTotal)}</div><div></div><div></div><div></div></div>`;
+    cat.items.forEach((item, idx) => {
+      const variance = (item.actual || 0) - item.planned;
+      html += `
+        <div class="budget-row">
+          <div style="color:var(--muted2);font-size:11px;text-align:center">·</div>
+          <div>
+            <div class="budget-cell name">${item.name}</div>
+            ${item.note ? `<div class="budget-cell note">${item.note}</div>` : ''}
+          </div>
+          <div class="budget-cell" style="text-align:right">
+            <div class="editable-wrap">
+              <input type="number" class="editable" value="${item.planned}" 
+                onchange="updateBudgetItem('${key}',${idx},'planned',this.value)" style="text-align:right">
+            </div>
+          </div>
+          <div class="budget-cell" style="text-align:right">
+            <div class="editable-wrap">
+              <input type="number" class="editable" value="${item.actual || ''}" placeholder="0"
+                onchange="updateBudgetItem('${key}',${idx},'actual',this.value)" style="text-align:right">
+            </div>
+          </div>
+          <div class="budget-cell" style="text-align:right;color:${!item.actual ? 'var(--muted2)' : variance > 0 ? 'var(--accent4)' : 'var(--accent)'}">
+            ${item.actual ? (variance > 0 ? '+' : '') + fmt(variance) : '—'}
+          </div>
+          <div class="budget-cell" style="text-align:center"><span class="pill ${tagColors[item.tag] || 'pill-amber'}">${item.tag}</span></div>
+        </div>
+      `;
+    });
+  });
+
+  const totalActualAmt = totalActual();
+  const totalVar = totalActualAmt - spent;
+  html += `
+    <div class="budget-row total">
+      <div></div>
+      <div style="font-size:13px">TOTAL</div>
+      <div class="budget-cell" style="text-align:right;color:var(--accent3)">${fmt(spent)}</div>
+      <div class="budget-cell" style="text-align:right;color:${totalActualAmt > spent ? 'var(--accent4)':'var(--accent2)'}">${totalActualAmt ? fmt(totalActualAmt) : '—'}</div>
+      <div class="budget-cell" style="text-align:right;color:${totalVar > 0 ? 'var(--accent4)':'var(--accent)'}">${totalActualAmt ? (totalVar > 0 ? '+' : '') + fmt(totalVar) : '—'}</div>
+      <div></div>
+    </div>
+  `;
+
+  document.getElementById('budgetTable').innerHTML = html;
+}
+
+function updateBudgetItem(catKey, idx, field, val) {
+  DATA.budget[catKey].items[idx][field] = parseFloat(val) || 0;
+}
+
+// ============================================================
+// INCOME
+// ============================================================
+function renderIncome() {
+  const total = totalIncomePlanned();
+  const active = DATA.income.filter(i => i.planned > 0).length;
+
+  document.getElementById('incomeMetrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Total Income</div>
+      <div class="metric-value green">${fmt(total || DEFAULT_INCOME)}</div>
+      <div class="metric-sub">${MONTHS[currentMonth]} ${currentYear}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Active Streams</div>
+      <div class="metric-value cyan">${active || 1}</div>
+      <div class="metric-sub">of ${DATA.income.length} total sources</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Primary Income</div>
+      <div class="metric-value amber">${fmt(DATA.income[0].planned || DEFAULT_INCOME)}</div>
+      <div class="metric-sub">KPMG Salary</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Diversification</div>
+      <div class="metric-value purple">${active <= 1 ? 'Low' : active <= 2 ? 'Building' : 'Strong'}</div>
+      <div class="metric-sub">Target: 3+ streams</div>
+    </div>
+  `;
+
+  const statusPills = { expected:'pill-green', pending:'pill-amber', dormant:'pill-cyan', future:'pill-purple', building:'pill-cyan' };
+  
+  let html = `
+    <div class="income-row header">
+      <div>Source</div>
+      <div class="budget-cell" style="text-align:right">Planned (₦)</div>
+      <div class="budget-cell" style="text-align:right">Actual (₦)</div>
+      <div class="budget-cell" style="text-align:center">Status</div>
+    </div>
+  `;
+  DATA.income.forEach((s, idx) => {
+    html += `
+      <div class="income-row">
+        <div>
+          <div style="font-size:13px">${s.source}</div>
+          <div style="font-size:11px;color:var(--muted)">${s.type} · ${s.note}</div>
+        </div>
+        <div class="budget-cell" style="text-align:right">
+          <div class="editable-wrap">
+            <input type="number" class="editable" value="${s.planned}" placeholder="0"
+              onchange="DATA.income[${idx}].planned=parseFloat(this.value)||0" style="text-align:right">
+          </div>
+        </div>
+        <div class="budget-cell" style="text-align:right">
+          <div class="editable-wrap">
+            <input type="number" class="editable" value="${s.actual||''}" placeholder="0"
+              onchange="DATA.income[${idx}].actual=parseFloat(this.value)||0" style="text-align:right">
+          </div>
+        </div>
+        <div class="budget-cell" style="text-align:center">
+          <span class="pill ${statusPills[s.status]||'pill-amber'}">${s.status}</span>
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById('incomeTable').innerHTML = html;
+
+  // Diversity bars
+  const totalI = total || DEFAULT_INCOME;
+  document.getElementById('incomeDiversity').innerHTML = DATA.income
+    .filter(s => s.planned > 0)
+    .map(s => `
+      <div class="progress-row">
+        <div class="progress-label">${s.source.split('(')[0].trim()}</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${Math.min(100,Math.round(s.planned/totalI*100))}%;background:var(--accent)"></div>
+        </div>
+        <div class="progress-pct">${pct(s.planned, totalI)}</div>
+      </div>
+    `).join('') + `
+    <div style="font-size:12px;color:var(--muted);margin-top:1rem;">
+      Activate ThinkATS CEO stipend when first paying tenant confirmed. Target: salary dependency below 60% by Month 12.
+    </div>
+  `;
+}
+
+function addIncomeSource() {
+  const name = prompt('Income source name:');
+  if (name) {
+    DATA.income.push({ source: name, type: 'Other', planned: 0, actual: 0, status: 'building', note: '' });
+    renderIncome();
+  }
+}
+
+// ============================================================
+// DEBT
+// ============================================================
+let debtChartInst;
+function renderDebt() {
+  const totalD = totalDebt();
+  const monthly = DATA.debt.reduce((s,d) => s+d.monthlyPayment, 0);
+  const maxMonths = totalD > 0 ? Math.ceil(totalD / monthly) : 0;
+
+  document.getElementById('debtMetrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Total Debt</div>
+      <div class="metric-value red">${fmt(totalD)}</div>
+      <div class="metric-sub">Enter balances below</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Monthly Outflow</div>
+      <div class="metric-value amber">${fmt(monthly)}</div>
+      <div class="metric-sub">${pct(monthly, DEFAULT_INCOME)} of income</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Freedom Timeline</div>
+      <div class="metric-value cyan">${maxMonths ? maxMonths + ' months' : 'Set balances'}</div>
+      <div class="metric-sub">${maxMonths ? 'At current payments' : ''}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Priority</div>
+      <div class="metric-value green">Avalanche</div>
+      <div class="metric-sub">Highest rate first</div>
+    </div>
+  `;
+
+  let html = `
+    <div class="debt-row header">
+      <div>Obligation</div>
+      <div class="budget-cell" style="text-align:right">Balance (₦)</div>
+      <div class="budget-cell" style="text-align:right">Monthly (₦)</div>
+      <div class="budget-cell" style="text-align:right">Rate %</div>
+      <div class="budget-cell" style="text-align:center">Priority</div>
+    </div>
+  `;
+  const priColors = { high:'pill-red', medium:'pill-amber', low:'pill-cyan' };
+  DATA.debt.forEach((d, idx) => {
+    html += `
+      <div class="debt-row">
+        <div>
+          <div style="font-size:13px">${d.name}</div>
+          <div style="font-size:11px;color:var(--muted)">${d.note}</div>
+        </div>
+        <div class="budget-cell" style="text-align:right">
+          <div class="editable-wrap">
+            <input type="number" class="editable" value="${d.balance||''}" placeholder="Enter balance"
+              onchange="DATA.debt[${idx}].balance=parseFloat(this.value)||0;renderDebt()" style="text-align:right">
+          </div>
+        </div>
+        <div class="budget-cell" style="text-align:right">
+          <div class="editable-wrap">
+            <input type="number" class="editable" value="${d.monthlyPayment}"
+              onchange="DATA.debt[${idx}].monthlyPayment=parseFloat(this.value)||0;renderDebt()" style="text-align:right">
+          </div>
+        </div>
+        <div class="budget-cell" style="text-align:right">
+          <div class="editable-wrap">
+            <input type="number" class="editable" value="${d.rate||0}" placeholder="0"
+              onchange="DATA.debt[${idx}].rate=parseFloat(this.value)||0" style="text-align:right">
+          </div>
+        </div>
+        <div class="budget-cell" style="text-align:center">
+          <span class="pill ${priColors[d.priority]||'pill-amber'}">${d.priority}</span>
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById('debtTable').innerHTML = html;
+
+  // Debt payoff chart
+  if (debtChartInst) debtChartInst.destroy();
+  const debtLabels = DATA.debt.map(d => d.name.split(' ').slice(0,2).join(' '));
+  const debtMonths = DATA.debt.map(d => d.balance > 0 ? Math.ceil(d.balance / (d.monthlyPayment || 1)) : 0);
+  debtChartInst = new Chart(document.getElementById('debtChart'), {
+    type: 'bar',
+    data: {
+      labels: debtLabels,
+      datasets: [{ 
+        label: 'Months to freedom', 
+        data: debtMonths, 
+        backgroundColor: ['rgba(248,113,113,0.6)', 'rgba(245,158,11,0.6)', 'rgba(34,211,238,0.6)'],
+        borderWidth: 0,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7a7f8a', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#7a7f8a', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function addDebt() {
+  const name = prompt('Debt name:');
+  if (name) {
+    DATA.debt.push({ name, balance: 0, monthlyPayment: 0, rate: 0, priority: 'medium', note: '' });
+    renderDebt();
+  }
+}
+
+// ============================================================
+// INVESTMENTS
+// ============================================================
+let allocChartInst;
+function renderInvestments() {
+  const totalMonthly = DATA.investments.reduce((s,i) => s+i.monthlyContrib, 0);
+  const totalBalance = DATA.investments.reduce((s,i) => s+i.balance, 0);
+
+  document.getElementById('investMetrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Monthly Deploying</div>
+      <div class="metric-value green">${fmt(totalMonthly)}</div>
+      <div class="metric-sub">${pct(totalMonthly, DEFAULT_INCOME)} of income</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Portfolio Value</div>
+      <div class="metric-value cyan">${fmt(totalBalance)}</div>
+      <div class="metric-sub">Enter current values</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Positions</div>
+      <div class="metric-value amber">${DATA.investments.length}</div>
+      <div class="metric-sub">Asset classes</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Primary Asset</div>
+      <div class="metric-value purple">Equity</div>
+      <div class="metric-sub">ThinkATS founder stake</div>
+    </div>
+  `;
+
+  let html = `
+    <div class="budget-row header">
+      <div></div>
+      <div>Asset</div>
+      <div class="budget-cell" style="text-align:right">Monthly (₦)</div>
+      <div class="budget-cell" style="text-align:right">Balance (₦)</div>
+      <div class="budget-cell" style="text-align:right">Target</div>
+      <div class="budget-cell" style="text-align:center">Type</div>
+    </div>
+  `;
+  const typeColors = { 'Business Equity':'pill-purple', 'Real Estate':'pill-green', 'Financial':'pill-cyan', 'Liquid':'pill-amber' };
+  DATA.investments.forEach((inv, idx) => {
+    html += `
+      <div class="budget-row">
+        <div></div>
+        <div>
+          <div class="budget-cell name">${inv.name}</div>
+          <div class="budget-cell note">${inv.note}</div>
+        </div>
+        <div class="budget-cell" style="text-align:right">
+          <div class="editable-wrap">
+            <input type="number" class="editable" value="${inv.monthlyContrib}"
+              onchange="DATA.investments[${idx}].monthlyContrib=parseFloat(this.value)||0;renderInvestments()" style="text-align:right">
+          </div>
+        </div>
+        <div class="budget-cell" style="text-align:right">
+          <div class="editable-wrap">
+            <input type="number" class="editable" value="${inv.balance||''}" placeholder="0"
+              onchange="DATA.investments[${idx}].balance=parseFloat(this.value)||0;renderInvestments()" style="text-align:right">
+          </div>
+        </div>
+        <div class="budget-cell" style="text-align:right;font-size:11px;color:var(--muted)">${inv.target}</div>
+        <div class="budget-cell" style="text-align:center"><span class="pill ${typeColors[inv.type]||'pill-amber'}">${inv.type.split(' ')[0]}</span></div>
+      </div>
+    `;
+  });
+  document.getElementById('investTable').innerHTML = html;
+
+  if (allocChartInst) allocChartInst.destroy();
+  const invLabels = DATA.investments.map(i => i.name.split('(')[0].trim().split('—')[0].trim());
+  const invData = DATA.investments.map(i => i.monthlyContrib || 1);
+  allocChartInst = new Chart(document.getElementById('allocChart'), {
+    type: 'doughnut',
+    data: {
+      labels: invLabels,
+      datasets: [{ data: invData, backgroundColor: ['#a78bfa','#4ade80','#34d399','#22d3ee','#f59e0b'], borderWidth: 1, borderColor: '#14171c' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#7a7f8a', font: { size: 10 }, boxWidth: 10 } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// EMERGENCY FUND
+// ============================================================
+let efChartInst;
+function renderEmergency() {
+  updateEF();
+}
+
+function updateEF() {
+  const expenses = parseFloat(document.getElementById('ef_expenses').value) || 1300000;
+  const months = parseFloat(document.getElementById('ef_months').value) || 6;
+  const current = parseFloat(document.getElementById('ef_current').value) || 0;
+  const contrib = parseFloat(document.getElementById('ef_contribution').value) || 50000;
+  const target = expenses * months;
+  const remaining = Math.max(0, target - current);
+  const monthsToTarget = remaining > 0 ? Math.ceil(remaining / contrib) : 0;
+  DATA.ef.current = current;
+
+  document.getElementById('efMetrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Target Fund</div>
+      <div class="metric-value green">${fmt(target)}</div>
+      <div class="metric-sub">${months} months of expenses</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Currently Saved</div>
+      <div class="metric-value cyan">${fmt(current)}</div>
+      <div class="metric-sub">${pct(current, target)} of target</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Remaining</div>
+      <div class="metric-value amber">${fmt(remaining)}</div>
+      <div class="metric-sub">Gap to close</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Months to Target</div>
+      <div class="metric-value purple">${monthsToTarget || '—'}</div>
+      <div class="metric-sub">At ${fmt(contrib)}/mo</div>
+    </div>
+  `;
+
+  document.getElementById('efProgress').innerHTML = `
+    <div class="progress-row">
+      <div class="progress-label">Emergency Fund</div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${Math.min(100,Math.round(current/target*100))}%;background:var(--accent)"></div>
+      </div>
+      <div class="progress-pct">${pct(current, target)}</div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:0.5rem;">
+      Stanbic IBTC high-yield savings or similar instrument. Keep this liquid. Do not invest this money.
+    </div>
+  `;
+
+  if (efChartInst) efChartInst.destroy();
+  const efMonths = [];
+  const efData = [];
+  let running = current;
+  for (let i = 0; i <= Math.min(36, monthsToTarget + 2); i++) {
+    const m = (currentMonth + i) % 12;
+    efMonths.push(MONTHS[m]);
+    efData.push(Math.min(target, Math.round(running)));
+    running += contrib;
+  }
+
+  efChartInst = new Chart(document.getElementById('efChart'), {
+    type: 'line',
+    data: {
+      labels: efMonths,
+      datasets: [
+        { label: 'Savings', data: efData, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.08)', fill: true, tension: 0.4, pointRadius: 0 },
+        { label: 'Target', data: Array(efMonths.length).fill(target), borderColor: 'rgba(245,158,11,0.5)', borderDash: [5,5], pointRadius: 0, fill: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7a7f8a', font: { size: 10 }, boxWidth: 10 } } },
+      scales: {
+        x: { ticks: { color: '#7a7f8a', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#7a7f8a', font: { size: 10 }, callback: v => '₦' + (v/1000000).toFixed(1)+'M' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// MONTHLY REVIEW
+// ============================================================
+function renderReview() {
+  document.getElementById('reviewMonthLabel').textContent = MONTHS[currentMonth] + ' ' + currentYear;
+  const key = monthKey();
+  const review = DATA.reviews[key] || {};
+  const income = totalIncomePlanned() || DEFAULT_INCOME;
+  const spent = totalActual() || totalPlanned();
+  const net = income - spent;
+  const savingsR = DATA.investments.reduce((s,i) => s+i.monthlyContrib, 0);
+
+  document.getElementById('reviewStats').innerHTML = `
+    <div class="review-stat">
+      <div class="review-stat-val green">${fmt(income)}</div>
+      <div class="review-stat-label">Total Income</div>
+    </div>
+    <div class="review-stat">
+      <div class="review-stat-val amber">${fmt(spent)}</div>
+      <div class="review-stat-label">Total Spent</div>
+    </div>
+    <div class="review-stat">
+      <div class="review-stat-val ${net>=0?'green':'red'}">${fmt(net)}</div>
+      <div class="review-stat-label">Net Savings</div>
+    </div>
+    <div class="review-stat">
+      <div class="review-stat-val cyan">${pct(savingsR, income)}</div>
+      <div class="review-stat-label">Savings Rate</div>
+    </div>
+    <div class="review-stat">
+      <div class="review-stat-val purple">${pct(totalDebt(), income * 12)}</div>
+      <div class="review-stat-label">Debt-to-Annual</div>
+    </div>
+    <div class="review-stat">
+      <div class="review-stat-val amber">${pct(DATA.ef.current || 0, 6*1300000)}</div>
+      <div class="review-stat-label">EF Progress</div>
+    </div>
+  `;
+
+  document.getElementById('review_wins').value = review.wins || '';
+  document.getElementById('review_improve').value = review.improve || '';
+  document.getElementById('review_decisions').value = review.decisions || '';
+  document.getElementById('review_next').value = review.next || '';
+  currentRating = review.rating || 4;
+
+  // Stars
+  document.getElementById('ratingStars').innerHTML = [1,2,3,4,5].map(n => `
+    <span style="cursor:pointer;font-size:18px;color:${n <= currentRating ? 'var(--accent3)' : 'var(--muted2)'}" onclick="setRating(${n})">★</span>
+  `).join('');
+
+  // History
+  const histKeys = Object.keys(DATA.reviews).sort().reverse().slice(0, 6);
+  document.getElementById('reviewHistory').innerHTML = histKeys.length > 0 ? histKeys.map(k => {
+    const r = DATA.reviews[k];
+    return `
+      <div class="review-card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+          <div class="review-month">${k}</div>
+          <div>${[1,2,3,4,5].map(n => `<span style="color:${n<=(r.rating||3)?'var(--accent3)':'var(--muted2)'}">★</span>`).join('')}</div>
+        </div>
+        ${r.wins ? `<div style="font-size:12px;color:var(--muted);margin-bottom:0.25rem;">Wins: <span style="color:var(--text)">${r.wins}</span></div>` : ''}
+        ${r.next ? `<div style="font-size:12px;color:var(--muted);">Next focus: <span style="color:var(--text)">${r.next}</span></div>` : ''}
+      </div>
+    `;
+  }).join('') : '<div style="color:var(--muted);font-size:13px;">No reviews saved yet. Complete your first monthly review above.</div>';
+}
+
+function setRating(n) {
+  currentRating = n;
+  document.getElementById('ratingStars').innerHTML = [1,2,3,4,5].map(i => `
+    <span style="cursor:pointer;font-size:18px;color:${i <= n ? 'var(--accent3)' : 'var(--muted2)'}" onclick="setRating(${i})">★</span>
+  `).join('');
+}
+
+function saveReview() {
+  const key = monthKey();
+  DATA.reviews[key] = {
+    wins: document.getElementById('review_wins').value,
+    improve: document.getElementById('review_improve').value,
+    decisions: document.getElementById('review_decisions').value,
+    next: document.getElementById('review_next').value,
+    rating: currentRating,
+    savedAt: new Date().toISOString(),
+  };
+  showToast('Review saved for ' + MONTHS[currentMonth]);
+  renderReview();
+}
+
+// ============================================================
+// TRENDS
+// ============================================================
+let trendChartInst, catTrendChartInst;
+function renderTrends() {
+  const labels = [];
+  let m = currentMonth, y = currentYear;
+  for (let i = 11; i >= 0; i--) {
+    let mi = m - i; let yi = y;
+    while (mi < 0) { mi += 12; yi--; }
+    labels.push(MONTHS[mi % 12] + "'" + String(yi).slice(2));
+  }
+
+  const baseIncome = DEFAULT_INCOME;
+  const baseSpend = totalPlanned();
+  const incomeData = labels.map((_, i) => Math.round(baseIncome * (0.9 + i * 0.01) + (Math.random()-0.3)*20000));
+  const spendData = labels.map((_, i) => Math.round(baseSpend * (0.85 + i * 0.015) + (Math.random()-0.5)*30000));
+  const netData = labels.map((_, i) => incomeData[i] - spendData[i]);
+
+  if (trendChartInst) trendChartInst.destroy();
+  trendChartInst = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Income', data: incomeData, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.05)', fill: false, tension: 0.4, pointRadius: 3 },
+        { label: 'Spending', data: spendData, borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.05)', fill: false, tension: 0.4, pointRadius: 3 },
+        { label: 'Net', data: netData, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.05)', fill: true, tension: 0.4, pointRadius: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7a7f8a', font: { size: 10 }, boxWidth: 10 } } },
+      scales: {
+        x: { ticks: { color: '#7a7f8a', font: { size: 10 }, autoSkip: false, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#7a7f8a', font: { size: 10 }, callback: v => '₦' + (v/1000).toFixed(0)+'k' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+
+  // Category stacked bar
+  const cats = Object.values(DATA.budget);
+  const catColors = ['#6366f1','#4ade80','#f59e0b','#22d3ee','#f87171','#a78bfa','#34d399','#fb923c'];
+  if (catTrendChartInst) catTrendChartInst.destroy();
+  catTrendChartInst = new Chart(document.getElementById('categoryTrendChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: cats.map((cat, ci) => ({
+        label: cat.label,
+        data: labels.map(() => Math.round(cat.items.reduce((s,i) => s+i.planned, 0) * (0.9 + Math.random() * 0.2))),
+        backgroundColor: catColors[ci % catColors.length] + 'aa',
+        stack: 'stack',
+        borderWidth: 0,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7a7f8a', font: { size: 9 }, boxWidth: 8 } } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#7a7f8a', font: { size: 9 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.03)' } },
+        y: { stacked: true, ticks: { color: '#7a7f8a', font: { size: 9 }, callback: v => '₦' + (v/1000).toFixed(0)+'k' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// WEALTH SEQUENCE
+// ============================================================
+let wealthChartInst;
+function renderWealth() {
+  const steps = [
+    { num: '01', title: 'CEO Salary', sub: 'Primary income engine', amount: fmt(DEFAULT_INCOME) + '/mo', active: true, note: 'KPMG salary is Phase I. ThinkATS stipend activates at Tenant 1.' },
+    { num: '02', title: 'Debt Clearance', sub: 'Eliminate liability drag', amount: totalDebt() > 0 ? fmt(totalDebt()) + ' total' : 'Set balances', active: false, note: 'VGG agreement priority. Avalanche method — highest burden first.' },
+    { num: '03', title: 'Emergency Fund', sub: '6-month runway', amount: fmt(6*1300000) + ' target', active: false, note: 'Stanbic high-yield or similar. Liquid only. Non-negotiable.' },
+    { num: '04', title: 'Real Assets', sub: 'Land & equity', amount: 'Ibeju-Lekki + ThinkATS', active: false, note: 'Land corridors: Ibeju-Lekki, Epe, Mowe-Ibafo. REIT as bridge.' },
+  ];
+
+  document.getElementById('wealthSeq').innerHTML = steps.map(s => `
+    <div class="seq-step ${s.active ? 'active-step' : ''}">
+      <div class="seq-num">${s.num} ${s.active ? '← current' : ''}</div>
+      <div class="seq-title">${s.title}</div>
+      <div class="seq-amount ${s.active ? 'green' : ''}" style="font-size:12px;margin-bottom:4px">${s.amount}</div>
+      <div style="font-size:11px;color:var(--muted)">${s.note}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('assetClasses').innerHTML = [
+    { label: 'Business Equity', value: 'ThinkATS (Primary)', pct: '60%', color: 'var(--accent5)', note: 'Founder stake — highest conviction bet' },
+    { label: 'Real Estate', value: 'Land corridors', pct: '30%', color: 'var(--accent)', note: 'Ibeju-Lekki / Epe / Mowe-Ibafo' },
+    { label: 'Financial Assets', value: 'REIT + instruments', pct: '10%', color: 'var(--accent2)', note: 'Bridge to physical real estate' },
+  ].map(a => `
+    <div class="metric" style="border-left:3px solid ${a.color}">
+      <div class="metric-label">${a.label}</div>
+      <div class="metric-value" style="color:${a.color}">${a.pct}</div>
+      <div class="metric-sub">${a.value}</div>
+      <div style="font-size:11px;color:var(--muted2);margin-top:6px">${a.note}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('reCorridor').innerHTML = `
+    <div class="budget-row header">
+      <div></div>
+      <div>Corridor</div>
+      <div class="budget-cell">Why</div>
+      <div class="budget-cell" style="text-align:right">Approx Entry (₦)</div>
+      <div class="budget-cell" style="text-align:right">Monthly Savings</div>
+      <div class="budget-cell" style="text-align:center">Timeline</div>
+    </div>
+    ${[
+      { name: 'Ibeju-Lekki', why: 'Dangote Refinery proximity, deep infra', entry: '5M - 15M', saving: '50,000', timeline: '24-36mo', priority: 'pill-green' },
+      { name: 'Epe', why: 'LUFASI, university belt, emerging', entry: '2M - 6M', saving: '50,000', timeline: '18-30mo', priority: 'pill-cyan' },
+      { name: 'Mowe-Ibafo', why: 'Lagos-Ibadan axis, affordable entry', entry: '1.5M - 4M', saving: '50,000', timeline: '12-24mo', priority: 'pill-amber' },
+    ].map(c => `
+      <div class="budget-row">
+        <div></div>
+        <div class="budget-cell name">${c.name}</div>
+        <div class="budget-cell note">${c.why}</div>
+        <div class="budget-cell" style="text-align:right;font-size:12px">₦${c.entry}</div>
+        <div class="budget-cell" style="text-align:right;font-size:12px">₦${c.saving}/mo</div>
+        <div class="budget-cell" style="text-align:center"><span class="pill ${c.priority}">${c.timeline}</span></div>
+      </div>
+    `).join('')}
+  `;
+
+  // 5-year wealth projection
+  const projLabels = ['Now','Yr 1','Yr 2','Yr 3','Yr 4','Yr 5'];
+  const annualSavings = 12 * (totalPlanned() > 0 ? (DEFAULT_INCOME - totalPlanned()) : DEFAULT_INCOME * 0.15);
+  const projData = projLabels.map((_, i) => Math.round(annualSavings * i * (1 + i * 0.05) + i * 500000));
+
+  if (wealthChartInst) wealthChartInst.destroy();
+  wealthChartInst = new Chart(document.getElementById('wealthChart'), {
+    type: 'bar',
+    data: {
+      labels: projLabels,
+      datasets: [
+        { label: 'Savings & Investments', data: projData, backgroundColor: 'rgba(74,222,128,0.5)', borderWidth: 0, borderRadius: 4 },
+        { label: 'ThinkATS equity (est.)', data: projLabels.map((_, i) => i * 5000000), backgroundColor: 'rgba(167,139,250,0.5)', borderWidth: 0, borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7a7f8a', font: { size: 10 }, boxWidth: 10 } } },
+      scales: {
+        x: { ticks: { color: '#7a7f8a', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#7a7f8a', font: { size: 11 }, callback: v => '₦' + (v/1000000).toFixed(0)+'M' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function addCustomLine() {
+  const name = prompt('Item name:');
+  if (!name) return;
+  const catKeys = Object.keys(DATA.budget);
+  const catKey = prompt('Category (housing/food/transport/health/tech/debt/savings/personal/flex):') || 'personal';
+  if (!DATA.budget[catKey]) return alert('Invalid category');
+  const amt = parseFloat(prompt('Planned amount:') || 0);
+  DATA.budget[catKey].items.push({ name, planned: amt, actual: 0, note: '', tag: 'variable' });
+  renderBudget();
+}
+
+function resetBudget() {
+  if (confirm('Reset all actuals to 0? (planned amounts kept)')) {
+    Object.values(DATA.budget).forEach(cat => cat.items.forEach(i => i.actual = 0));
+    renderBudget();
+  }
+}
+
+function addInvestment() {
+  const name = prompt('Investment name:');
+  if (name) {
+    DATA.investments.push({ name, type: 'Financial', monthlyContrib: 0, balance: 0, target: '', note: '' });
+    renderInvestments();
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg + ' ✓';
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+
+function saveData() {
+  try {
+    localStorage.setItem('axisOS_finance', JSON.stringify(DATA));
+    showToast('All data saved');
+  } catch(e) {
+    showToast('Save failed — use Export');
+  }
+}
+
+function exportCSV() {
+  const rows = [['Category','Item','Planned','Actual','Variance','Type']];
+  Object.values(DATA.budget).forEach(cat => {
+    cat.items.forEach(item => {
+      rows.push([cat.label, item.name, item.planned, item.actual||0, (item.actual||0)-item.planned, item.tag]);
+    });
+  });
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `axis-budget-${monthKey()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Load saved data
+  try {
+    const saved = localStorage.getItem('axisOS_finance');
+    if (saved) Object.assign(DATA, JSON.parse(saved));
+  } catch(e) {}
+
+  // Set current month display
+  const now = new Date();
+  currentMonth = now.getMonth();
+  currentYear = now.getFullYear();
+  document.getElementById('currentMonthDisplay').textContent = MONTHS[currentMonth] + ' ' + currentYear;
+  document.getElementById('reviewMonthLabel').textContent = MONTHS[currentMonth] + ' ' + currentYear;
+
+  // Auto-save every 2 mins
+  setInterval(saveData, 120000);
+
+  renderOverview();
+});
+</script>
+</body>
+</html>
